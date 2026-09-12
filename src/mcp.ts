@@ -11,6 +11,7 @@ import { addToCart, getCart, type CartResponse } from "./cart.js";
 import { queryProductsByIds } from "./my-items.js";
 import { syncPurchaseHistory, loadPurchaseHistory, loadMyItems } from "./purchase-history.js";
 import { classifyUrgency, generateShoppingList, getProductInsight } from "./patterns.js";
+import { syncGroceryNote } from "./grocery-sync.js";
 
 export function createMcpServer(): McpServer {
 const server = new McpServer({ name: "wegmans-mcp", version: "1.0.0" });
@@ -44,6 +45,32 @@ function registerTool<Args extends ZodRawShapeCompat>(
     }
   });
 }
+
+registerTool(
+  "sync_grocery_note",
+  "Parse grocery-note content, compare it against the live Wegmans cart with normalized matching, and add only the missing items. Uses purchase-history preferences first, then search fallback.",
+  {
+    note_content: z.string().describe("Raw note content from Apple Notes or another grocery list source."),
+    dry_run: z.boolean().optional().describe("When true, do not add anything; only report what would be added."),
+    store_number: z.string().optional().describe("Wegmans store number (default: WEGMANS_STORE)"),
+    fulfillment: z.enum(["instore", "pickup", "delivery"]).optional().describe("Fulfillment type (default: instore)"),
+    my_items_limit: z.number().int().min(1).max(200).optional()
+      .describe("How many purchase-history items to score before falling back to search (default: 75)"),
+  },
+  async ({ note_content, dry_run, store_number, fulfillment, my_items_limit }) => {
+    const result = await syncGroceryNote({
+      noteContent: note_content, dryRun: dry_run, storeNumber: store_number, fulfillment, myItemsLimit: my_items_limit,
+    });
+    const sections = [`Parsed ${result.parsedItems.length} grocery item(s).`];
+    if (result.alreadyInCart.length > 0) sections.push(["Already in cart:",
+      ...result.alreadyInCart.map((item) => `- ${item.item} -> ${item.matchedCartItems?.join("; ") ?? "matched cart item"}`)].join("\n"));
+    if (result.added.length > 0) sections.push([dry_run ? "Would add:" : "Added:",
+      ...result.added.map((item) => `- ${item.item} -> ${item.productName ?? item.productId ?? "unknown product"}`)].join("\n"));
+    if (result.unresolved.length > 0) sections.push(["Unresolved:",
+      ...result.unresolved.map((item) => `- ${item.item} -> ${item.reason}`)].join("\n"));
+    return { content: [{ type: "text", text: sections.join("\n\n") }] };
+  }
+);
 
 registerTool(
   "search_products",

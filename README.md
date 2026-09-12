@@ -51,6 +51,7 @@ Then call `sync_purchase_history` once before using the purchase-pattern tools.
 | `find_stores` | No | Find stores by name, city, state, ZIP, or number |
 | `get_my_items` | No | List frequently purchased products from synced history |
 | `add_to_cart` | Yes | Add a product to the Wegmans cart |
+| `sync_grocery_note` | Yes | Paste a grocery list; adds only what's missing from the cart, preferring products you've bought before (`dry_run` to preview) |
 | `get_cart` | Yes | View the current cart |
 | `sync_purchase_history` | Yes | Sync receipts, online orders, and rankings |
 | `get_purchase_patterns` | No | Analyze purchase intervals and urgency |
