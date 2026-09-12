@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wegmans-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-12",
+  "observability": { "enabled": true },
+  "vars": { "WEGMANS_STORE": "133" },
+  "kv_namespaces": [
+    { "binding": "DATA", "id": "<run: wrangler kv namespace create DATA>" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "WEGMANS_AUTH", "class_name": "WegmansAuth" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WegmansAuth"] }],
+  "routes": [{ "pattern": "wegmans.example.com", "custom_domain": true }]
+}
