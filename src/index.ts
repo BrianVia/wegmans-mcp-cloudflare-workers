@@ -23,7 +23,7 @@ app.all("/mcp", async (c) => {
   setEnv(c.env);
   if (!await same(bearer(c.req.header("Authorization")), c.env.MCP_BEARER)) return c.json({ error: "Unauthorized" }, 401);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  const server = createMcpServer();
+  const server = await createMcpServer();
   await server.connect(transport);
   return transport.handleRequest(c.req.raw);
 });

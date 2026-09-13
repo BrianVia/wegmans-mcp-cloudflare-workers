@@ -13,8 +13,16 @@ import { syncPurchaseHistory, loadPurchaseHistory, loadMyItems } from "./purchas
 import { classifyUrgency, generateShoppingList, getProductInsight } from "./patterns.js";
 import { syncGroceryNote } from "./grocery-sync.js";
 
-export function createMcpServer(): McpServer {
-const server = new McpServer({ name: "wegmans-mcp", version: "1.0.0" });
+const PREFS_KEY = "preferences";
+
+export async function createMcpServer(): Promise<McpServer> {
+// The owner's food preferences ride along as server instructions so every client sees them on connect.
+const preferences = await env().DATA.get(PREFS_KEY);
+const server = new McpServer({ name: "wegmans-mcp", version: "1.0.0" }, {
+  instructions: preferences
+    ? `The account owner's food and shopping preferences. Respect them when searching, choosing products, and adding to the cart:\n\n${preferences}`
+    : "No food preferences set yet. Use set_food_preferences to store the owner's preferences (markdown).",
+});
 
 type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
@@ -45,6 +53,23 @@ function registerTool<Args extends ZodRawShapeCompat>(
     }
   });
 }
+
+registerTool(
+  "get_food_preferences",
+  "Read the account owner's food and shopping preferences (markdown). Also delivered automatically as server instructions on connect.",
+  {},
+  async () => ({ content: [{ type: "text", text: (await env().DATA.get(PREFS_KEY)) ?? "No preferences set." }] })
+);
+
+registerTool(
+  "set_food_preferences",
+  "Replace the account owner's food and shopping preferences (markdown). Read them first with get_food_preferences and merge; this overwrites the whole document.",
+  { content: z.string().min(1).max(20_000).describe("Full markdown document of preferences.") },
+  async ({ content }) => {
+    await env().DATA.put(PREFS_KEY, content);
+    return { content: [{ type: "text", text: `Saved ${content.length} characters of preferences.` }] };
+  }
+);
 
 registerTool(
   "sync_grocery_note",
