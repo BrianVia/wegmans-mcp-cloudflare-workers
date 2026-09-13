@@ -51,6 +51,7 @@ Then call `sync_purchase_history` once before using the purchase-pattern tools.
 | `find_stores` | No | Find stores by name, city, state, ZIP, or number |
 | `get_my_items` | No | List frequently purchased products from synced history |
 | `add_to_cart` | Yes | Add a product to the Wegmans cart |
+| `remove_from_cart` | Yes | Remove a product from the cart by ID (whole-cart rewrite without that SKU) |
 | `sync_grocery_note` | Yes | Paste a grocery list; adds only what's missing from the cart, preferring products you've bought before (`dry_run` to preview) |
 | `get_food_preferences` / `set_food_preferences` | No | A markdown note of your food preferences ("Wegmans brand when available", "no pork", …). Stored in KV and sent to every MCP client as server instructions on connect, so agents respect it without being told. |
 | `get_cart` | Yes | View the current cart |

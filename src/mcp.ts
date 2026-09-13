@@ -7,7 +7,7 @@ import { z } from "zod";
 import { env } from "./env.js";
 import { searchProducts, formatProduct, lookupProduct } from "./algolia.js";
 import { findStores } from "./stores.js";
-import { addToCart, getCart, type CartResponse } from "./cart.js";
+import { addToCart, getCart, removeFromCart, type CartResponse } from "./cart.js";
 import { queryProductsByIds } from "./my-items.js";
 import { syncPurchaseHistory, loadPurchaseHistory, loadMyItems } from "./purchase-history.js";
 import { classifyUrgency, generateShoppingList, getProductInsight } from "./patterns.js";
@@ -282,6 +282,29 @@ registerTool(
         },
       ],
     };
+  }
+);
+
+registerTool(
+  "remove_from_cart",
+  "Remove a product from your Wegmans shopping cart entirely by product ID. The cart is rewritten without that SKU (the API has no per-line delete). Use get_cart to find product IDs. Call sequentially, never in parallel with other cart writes.",
+  {
+    product_id: z.string().describe("The Wegmans product ID (from get_cart or search results)"),
+    store_number: z.string().optional().describe("Wegmans store number (default: from WEGMANS_STORE env or 133)"),
+    fulfillment: z
+      .enum(["instore", "pickup", "delivery"])
+      .optional()
+      .describe("Fulfillment type (default: instore)"),
+  },
+  async ({ product_id, store_number, fulfillment }) => {
+    const result = await removeFromCart(product_id, store_number, fulfillment);
+    if (!result.success) {
+      return { content: [{ type: "text", text: `Failed to remove from cart: ${result.error}` }] };
+    }
+    const text = result.removed
+      ? `Removed product ${product_id} from cart. ${result.totalCartItems} line item(s) remain.`
+      : `Product ${product_id} was not in the cart (${result.totalCartItems} line item(s), unchanged).`;
+    return { content: [{ type: "text", text }] };
   }
 );
 
